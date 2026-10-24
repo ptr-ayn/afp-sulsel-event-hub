@@ -28,7 +28,7 @@ function Home() {
         <p className="mt-6 max-w-xl text-lg text-muted-foreground">Cek ketersediaan tanggal di 24 kabupaten/kota, ajukan proposal, dan kunci jadwal Anda dengan deposit Rp500.000.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg"><Link to="/portal/proposals/new">Ajukan proposal</Link></Button>
-          <Button asChild size="lg" variant="outline"><Link to="/auth" search={{ redirect: undefined }}>Masuk / Daftar</Link></Button>
+          <Button asChild size="lg" variant="outline"><Link to="/auth">Masuk / Daftar</Link></Button>
         </div>
       </section>
       <section className="border-t bg-muted/40">
