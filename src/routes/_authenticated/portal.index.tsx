@@ -93,7 +93,7 @@ function OrganizerForm({ userId }: { userId: string }) {
       legal_id: String(f.get("legal_id")).trim() || null,
     });
     setSaving(false);
-    if (error) return toast.error("Gagal menyimpan profil.");
+    if (error) { toast.error("Gagal menyimpan profil."); return; }
     toast.success("Profil penyelenggara tersimpan.");
     qc.invalidateQueries({ queryKey: ["organizer", userId] });
   }

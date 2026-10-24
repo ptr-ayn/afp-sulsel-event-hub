@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    redirect: typeof s.redirect === "string" && s.redirect.startsWith("/") && !s.redirect.startsWith("//") ? s.redirect : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => {
+    const r = s["redirect"];
+    return { redirect: typeof r === "string" && r.startsWith("/") && !r.startsWith("//") ? r : undefined };
+  },
   head: () => ({
     meta: [
       { title: "Masuk / Daftar — AFP Sulsel" },
@@ -46,7 +47,7 @@ function AuthPage() {
       password: String(f.get("password")),
     });
     setLoading(false);
-    if (error) return toast.error("Email atau kata sandi salah.");
+    if (error) { toast.error("Email atau kata sandi salah."); return; }
     navigate({ to: dest, replace: true });
   }
 
@@ -54,7 +55,7 @@ function AuthPage() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const password = String(f.get("password"));
-    if (password.length < 8) return toast.error("Kata sandi minimal 8 karakter.");
+    if (password.length < 8) { toast.error("Kata sandi minimal 8 karakter."); return; }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: String(f.get("email")),
@@ -65,7 +66,7 @@ function AuthPage() {
       },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     if (data.session) navigate({ to: dest, replace: true });
     else setSent(true);
   }
