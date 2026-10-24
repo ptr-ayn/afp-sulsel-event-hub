@@ -616,6 +616,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_region_availability: {
+        Args: { _from: string; _region_id: string; _to: string }
+        Returns: {
+          event_date: string
+          lock_type: Database["public"]["Enums"]["lock_type"]
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -625,6 +632,37 @@ export type Database = {
       }
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      release_expired_holds: { Args: never; Returns: undefined }
+      submit_proposal: {
+        Args: { _event_id: string }
+        Returns: {
+          created_at: string
+          description: string | null
+          end_date: string
+          estimated_participants: number
+          event_code: string
+          event_type: string
+          id: string
+          name: string
+          organizer_id: string
+          participant_category: string
+          region_id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["application_status"]
+          submitted_at: string | null
+          updated_at: string
+          venue: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "organizer" | "admin_event" | "finance" | "super_admin"
