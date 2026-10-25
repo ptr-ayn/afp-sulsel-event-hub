@@ -136,6 +136,8 @@ revoke insert, update, delete, truncate, references, trigger
 grant select, delete on public.event_documents to authenticated;
 grant insert (event_id, document_type, storage_path)
 	on public.event_documents to authenticated;
+grant update (verification_status, reviewed_by, reviewed_at)
+	on public.event_documents to authenticated;
 
 -- Supabase manages baseline storage.objects ACLs; Storage RLS limits the allowed objects.
 revoke insert, update, delete, truncate, references, trigger
@@ -165,6 +167,22 @@ create policy "docs_delete_own" on public.event_documents
 			and e.status = 'DRAFT'
 	));
 
+drop policy "docs_read_owner_or_staff" on storage.objects;
+create policy "docs_read_owner_or_staff" on storage.objects
+	for select to authenticated
+	using (
+		bucket_id = 'organizer-documents'
+		and (
+			exists (
+				select 1 from public.events e
+				join public.organizers o on o.id = e.organizer_id
+				where e.id::text = (storage.foldername(storage.objects.name))[1]
+					and o.owner_id = auth.uid()
+			)
+			or public.is_staff()
+		)
+	);
+
 drop policy "docs_upload_owner" on storage.objects;
 create policy "docs_upload_owner" on storage.objects
 	for insert to authenticated
@@ -173,7 +191,7 @@ create policy "docs_upload_owner" on storage.objects
 		and exists (
 			select 1 from public.events e
 			join public.organizers o on o.id = e.organizer_id
-			where e.id::text = (storage.foldername(name))[1]
+			where e.id::text = (storage.foldername(storage.objects.name))[1]
 				and o.owner_id = auth.uid()
 				and e.status = 'DRAFT'
 		)
@@ -187,7 +205,7 @@ create policy "docs_delete_owner" on storage.objects
 		and exists (
 			select 1 from public.events e
 			join public.organizers o on o.id = e.organizer_id
-			where e.id::text = (storage.foldername(name))[1]
+			where e.id::text = (storage.foldername(storage.objects.name))[1]
 				and o.owner_id = auth.uid()
 				and e.status = 'DRAFT'
 		)
