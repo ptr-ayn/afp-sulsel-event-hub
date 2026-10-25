@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedPortalIndexRouteImport } from './routes/_authenticated/portal.index'
+import { Route as AuthenticatedPortalFinanceRouteImport } from './routes/_authenticated/portal.finance'
 import { Route as AuthenticatedPortalPaymentsEventIdRouteImport } from './routes/_authenticated/portal.payments.$eventId'
 import { Route as AuthenticatedPortalProposalsNewRouteImport } from './routes/_authenticated/portal.proposals.new'
 import { Route as ApiPublicPaymentsExpireHoldsRouteImport } from './routes/api/public/payments/expire-holds'
@@ -43,6 +44,12 @@ const AuthenticatedPortalIndexRoute =
   AuthenticatedPortalIndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => AuthenticatedPortalRoute,
+  } as any)
+const AuthenticatedPortalFinanceRoute =
+  AuthenticatedPortalFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
     getParentRoute: () => AuthenticatedPortalRoute,
   } as any)
 const AuthenticatedPortalPaymentsEventIdRoute =
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/portal': typeof AuthenticatedPortalRouteWithChildren
+  '/portal/finance': typeof AuthenticatedPortalFinanceRoute
   '/portal/': typeof AuthenticatedPortalIndexRoute
   '/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
@@ -89,6 +97,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/portal/finance': typeof AuthenticatedPortalFinanceRoute
   '/portal': typeof AuthenticatedPortalIndexRoute
   '/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
@@ -102,6 +111,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRouteWithChildren
+  '/_authenticated/portal/finance': typeof AuthenticatedPortalFinanceRoute
   '/_authenticated/portal/': typeof AuthenticatedPortalIndexRoute
   '/_authenticated/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/_authenticated/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/portal'
+    | '/portal/finance'
     | '/portal/'
     | '/portal/payments/$eventId'
     | '/portal/proposals/new'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/portal/finance'
     | '/portal'
     | '/portal/payments/$eventId'
     | '/portal/proposals/new'
@@ -137,6 +149,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/portal'
+    | '/_authenticated/portal/finance'
     | '/_authenticated/portal/'
     | '/_authenticated/portal/payments/$eventId'
     | '/_authenticated/portal/proposals/new'
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalIndexRouteImport
       parentRoute: typeof AuthenticatedPortalRoute
     }
+    '/_authenticated/portal/finance': {
+      id: '/_authenticated/portal/finance'
+      path: '/finance'
+      fullPath: '/portal/finance'
+      preLoaderRoute: typeof AuthenticatedPortalFinanceRouteImport
+      parentRoute: typeof AuthenticatedPortalRoute
+    }
     '/_authenticated/portal/payments/$eventId': {
       id: '/_authenticated/portal/payments/$eventId'
       path: '/payments/$eventId'
@@ -230,12 +250,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedPortalRouteChildren {
+  AuthenticatedPortalFinanceRoute: typeof AuthenticatedPortalFinanceRoute
   AuthenticatedPortalIndexRoute: typeof AuthenticatedPortalIndexRoute
   AuthenticatedPortalPaymentsEventIdRoute: typeof AuthenticatedPortalPaymentsEventIdRoute
   AuthenticatedPortalProposalsNewRoute: typeof AuthenticatedPortalProposalsNewRoute
 }
 
 const AuthenticatedPortalRouteChildren: AuthenticatedPortalRouteChildren = {
+  AuthenticatedPortalFinanceRoute: AuthenticatedPortalFinanceRoute,
   AuthenticatedPortalIndexRoute: AuthenticatedPortalIndexRoute,
   AuthenticatedPortalPaymentsEventIdRoute:
     AuthenticatedPortalPaymentsEventIdRoute,
