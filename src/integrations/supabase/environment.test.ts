@@ -52,3 +52,15 @@ describe("resolveSupabaseEnvironment", () => {
     });
   });
 });
+describe("public config fallback", () => {
+  it("falls back to the AFP Sulsel project when no env vars are present outside TEST mode", () => {
+    expect(resolveSupabaseEnvironment("production", {})).toEqual({
+      url: "https://cwmznvhtrulmnwyvykbn.supabase.co",
+      publishableKey: "sb_publishable_yOw___v_4D38q1EusRkYTg_v8mhfrCa",
+    });
+  });
+
+  it("never falls back in TEST mode", () => {
+    expect(() => resolveSupabaseEnvironment("test", {})).toThrow();
+  });
+});

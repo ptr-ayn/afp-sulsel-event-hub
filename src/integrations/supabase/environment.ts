@@ -1,3 +1,5 @@
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from "./public-config";
+
 const TEST_SUPABASE_URL = "https://bvtqtvqvwbqmuewuhipc.supabase.co";
 
 type SupabaseEnvironmentSources = {
@@ -10,10 +12,10 @@ type SupabaseEnvironmentSources = {
 
 export function resolveSupabaseEnvironment(mode: string, sources: SupabaseEnvironmentSources) {
   const isTest = mode === "test" || mode === "testdev";
-  const url = isTest ? sources.viteUrl : sources.viteUrl || sources.serverUrl;
+  const url = isTest ? sources.viteUrl : sources.viteUrl || sources.serverUrl || PUBLIC_SUPABASE_URL;
   const publishableKey = isTest
     ? sources.testVitePublishableKey
-    : sources.vitePublishableKey || sources.serverPublishableKey;
+    : sources.vitePublishableKey || sources.serverPublishableKey || PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (isTest && url !== TEST_SUPABASE_URL) {
     throw new Error("Test mode must use the configured TEST Supabase project URL.");
