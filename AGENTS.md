@@ -20,3 +20,4 @@
 - `regions` is seeded only from the official Kemendagri dataset (24 regions of South Sulawesi, province code 73). Never fabricate events or payment records.
 - App-internal server logic uses `createServerFn` / server routes under `src/routes/api`; no new Supabase Edge Functions.
 - Deposit amount is Rp500.000 per proposal, stored as integer IDR; the server validates amounts, never the browser.
+- Public Supabase URL + publishable key live in `src/integrations/supabase/public-config.ts` as a fallback, because `.env` is gitignored and git-based builds otherwise have no VITE_SUPABASE_* values. Secret keys never go there.
