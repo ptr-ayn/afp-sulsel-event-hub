@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router";
+export const Route = createFileRoute("/api/public/payments/midtrans")({ server: { handlers: { POST: async ({ request }) => { const { receivePaymentWebhook } = await import("@/lib/payment-webhooks.server"); return receivePaymentWebhook(request, "midtrans"); } } } });

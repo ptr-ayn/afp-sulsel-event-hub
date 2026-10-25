@@ -1,0 +1,15 @@
+create schema if not exists app_private;
+revoke all on schema app_private from public,anon;
+grant usage on schema app_private to authenticated;
+alter function public.begin_deposit(uuid,text) set schema app_private;
+alter function public.submit_transfer_proof(uuid,text) set schema app_private;
+alter function public.review_manual_deposit(uuid,boolean,text) set schema app_private;
+alter function public.set_deposit_bank(text,text,text) set schema app_private;
+alter function public.get_deposit_bank() set schema app_private;
+create function public.begin_deposit(_event_id uuid,_provider text) returns public.payments language sql security invoker set search_path='' as $$select app_private.begin_deposit(_event_id,_provider)$$;
+create function public.submit_transfer_proof(_payment_id uuid,_path text) returns void language sql security invoker set search_path='' as $$select app_private.submit_transfer_proof(_payment_id,_path)$$;
+create function public.review_manual_deposit(_payment_id uuid,_approve boolean,_reason text default '') returns jsonb language sql security invoker set search_path='' as $$select app_private.review_manual_deposit(_payment_id,_approve,_reason)$$;
+create function public.set_deposit_bank(_bank text,_account text,_beneficiary text) returns void language sql security invoker set search_path='' as $$select app_private.set_deposit_bank(_bank,_account,_beneficiary)$$;
+create function public.get_deposit_bank() returns jsonb language sql security invoker set search_path='' as $$select app_private.get_deposit_bank()$$;
+revoke all on function public.begin_deposit(uuid,text),public.submit_transfer_proof(uuid,text),public.review_manual_deposit(uuid,boolean,text),public.set_deposit_bank(text,text,text),public.get_deposit_bank() from public,anon;
+grant execute on function public.begin_deposit(uuid,text),public.submit_transfer_proof(uuid,text),public.review_manual_deposit(uuid,boolean,text),public.set_deposit_bank(text,text,text),public.get_deposit_bank() to authenticated;
