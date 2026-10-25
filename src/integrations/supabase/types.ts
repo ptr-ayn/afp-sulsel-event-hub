@@ -633,6 +633,51 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       release_expired_holds: { Args: never; Returns: undefined }
+      set_event_document_review: {
+        Args: {
+          _document_id: string
+          _status: Database["public"]["Enums"]["doc_status"]
+        }
+        Returns: {
+          created_at: string
+          document_type: string
+          event_id: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          storage_path: string
+          verification_status: Database["public"]["Enums"]["doc_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "event_documents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_organizer_verification: {
+        Args: {
+          _organizer_id: string
+          _status: Database["public"]["Enums"]["verification_status"]
+        }
+        Returns: {
+          contact_person: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          legal_id: string | null
+          organization_name: string
+          owner_id: string
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organizers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_proposal: {
         Args: { _event_id: string }
         Returns: {
