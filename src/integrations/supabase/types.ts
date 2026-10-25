@@ -393,12 +393,16 @@ export type Database = {
       payments: {
         Row: {
           amount_idr: number
+          checkout_url: string | null
           created_at: string
           currency: string
+          environment: string
           event_id: string
+          expires_at: string | null
           id: string
           idempotency_key: string | null
           method: Database["public"]["Enums"]["payment_method"]
+          proof_path: string | null
           provider: string | null
           provider_reference: string | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -408,12 +412,16 @@ export type Database = {
         }
         Insert: {
           amount_idr: number
+          checkout_url?: string | null
           created_at?: string
           currency?: string
+          environment?: string
           event_id: string
+          expires_at?: string | null
           id?: string
           idempotency_key?: string | null
           method: Database["public"]["Enums"]["payment_method"]
+          proof_path?: string | null
           provider?: string | null
           provider_reference?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -423,12 +431,16 @@ export type Database = {
         }
         Update: {
           amount_idr?: number
+          checkout_url?: string | null
           created_at?: string
           currency?: string
+          environment?: string
           event_id?: string
+          expires_at?: string | null
           id?: string
           idempotency_key?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
+          proof_path?: string | null
           provider?: string | null
           provider_reference?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -616,6 +628,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attach_deposit_checkout: {
+        Args: { _payment_id: string; _reference: string; _url: string }
+        Returns: undefined
+      }
+      begin_deposit: {
+        Args: { _event_id: string; _provider: string }
+        Returns: {
+          amount_idr: number
+          checkout_url: string | null
+          created_at: string
+          currency: string
+          environment: string
+          event_id: string
+          expires_at: string | null
+          id: string
+          idempotency_key: string | null
+          method: Database["public"]["Enums"]["payment_method"]
+          proof_path: string | null
+          provider: string | null
+          provider_reference: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_deposit_bank: { Args: never; Returns: Json }
       get_region_availability: {
         Args: { _from: string; _region_id: string; _to: string }
         Returns: {
@@ -632,7 +677,27 @@ export type Database = {
       }
       is_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      process_gateway_deposit: {
+        Args: {
+          _amount: number
+          _currency: string
+          _event_key: string
+          _payment_id: string
+          _provider: string
+          _reference: string
+          _status: string
+        }
+        Returns: Json
+      }
       release_expired_holds: { Args: never; Returns: undefined }
+      review_manual_deposit: {
+        Args: { _approve: boolean; _payment_id: string; _reason?: string }
+        Returns: Json
+      }
+      set_deposit_bank: {
+        Args: { _account: string; _bank: string; _beneficiary: string }
+        Returns: undefined
+      }
       set_event_document_review: {
         Args: {
           _document_id: string
@@ -678,6 +743,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      settle_deposit_internal: {
+        Args: { _actor: string; _payment_id: string }
+        Returns: Json
+      }
       submit_proposal: {
         Args: { _event_id: string }
         Returns: {
@@ -707,6 +776,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      submit_transfer_proof: {
+        Args: { _path: string; _payment_id: string }
+        Returns: undefined
       }
     }
     Enums: {
