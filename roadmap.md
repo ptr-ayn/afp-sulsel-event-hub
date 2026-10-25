@@ -26,6 +26,7 @@ Backend: user's own Supabase project (ref cwmznvhtrulmnwyvykbn). Deposit Rp500.0
 - `RELEASED` is not a lock enum value. Current release is deletion; expired-hold cleanup records event status history but does not retain a date-lock release record. No rejection RPC currently releases locks while preserving payment and audit history.
 
 ## Phase 3 — Deposit payments
+- [ ] Current request: implement sandbox/configuration-pending Midtrans + Xendit, manual proofs, finance verification, atomic paid claims, webhook idempotency and reconciliation tests.
 - [ ] Payment provider adapter (Midtrans + Xendit, sandbox first; live payments need explicit approval)
 - [ ] Server-side session creation + transaction verification
 - [ ] Signed webhook route under `/api/public/*`, idempotent processing
