@@ -30,6 +30,10 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
+  if (import.meta.env.MODE === 'test' || import.meta.env.MODE === 'testdev') {
+    throw new Error('The privileged Supabase client is disabled in TEST mode.');
+  }
+
   const SUPABASE_URL = process.env['SUPABASE_URL'];
   const SUPABASE_SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 

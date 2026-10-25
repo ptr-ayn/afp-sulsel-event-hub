@@ -41,7 +41,15 @@ function Dashboard() {
     },
   });
 
-  if (org.isLoading) return <p className="text-muted-foreground">Memuat…</p>;
+  if (org.isLoading) return <p className="text-muted-foreground">Memuat profil penyelenggara…</p>;
+  if (org.isError) {
+    return (
+      <div role="alert" className="space-y-3">
+        <p className="text-destructive">Profil penyelenggara gagal dimuat.</p>
+        <Button variant="outline" onClick={() => void org.refetch()}>Coba lagi</Button>
+      </div>
+    );
+  }
   if (!org.data) return <OrganizerForm userId={user.id} />;
 
   return (
@@ -58,6 +66,11 @@ function Dashboard() {
         <div className="border-b px-4 py-3 font-semibold">Proposal saya</div>
         {events.isLoading ? (
           <p className="p-4 text-sm text-muted-foreground">Memuat…</p>
+        ) : events.isError ? (
+          <div role="alert" className="space-y-3 p-4">
+            <p className="text-sm text-destructive">Proposal gagal dimuat.</p>
+            <Button size="sm" variant="outline" onClick={() => void events.refetch()}>Coba lagi</Button>
+          </div>
         ) : !events.data?.length ? (
           <p className="p-8 text-center text-sm text-muted-foreground">Belum ada proposal. Mulai dengan mengajukan proposal pertama Anda.</p>
         ) : (

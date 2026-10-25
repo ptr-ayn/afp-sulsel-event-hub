@@ -11,27 +11,43 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { submitProposal } from "@/lib/proposals.functions";
-import { DEPOSIT_IDR, fmtDate, makassarToday, rupiah, toISODate } from "@/lib/format";
+import { createProposalDraft, submitProposalDraft, updateProposalDraft } from "@/lib/proposals.functions";
+import { DEPOSIT_IDR, fmtDate, hasDateConflict, inclusiveDateRange, makassarToday, rupiah, toISODate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/portal/proposals/new")({
   component: Wizard,
 });
 
-const STEPS = ["Wilayah & Tanggal", "Detail Event", "Tinjau & Ajukan"];
+const STEPS = ["Penyelenggara", "Wilayah & Tanggal", "Detail Event", "Dokumen", "Tinjau & Ajukan"];
 
 function Wizard() {
+  const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const submit = useServerFn(submitProposal);
+  const createDraft = useServerFn(createProposalDraft);
+  const updateDraft = useServerFn(updateProposalDraft);
+  const submitDraft = useServerFn(submitProposalDraft);
   const [step, setStep] = useState(0);
   const [regionId, setRegionId] = useState("");
   const [range, setRange] = useState<DateRange | undefined>();
   const [month, setMonth] = useState(new Date());
+  const [draftId, setDraftId] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentPath, setDocumentPath] = useState("");
+  const [documentRecordSaved, setDocumentRecordSaved] = useState(false);
   const [details, setDetails] = useState({
     name: "", description: "", venue: "", event_type: "Turnamen", participant_category: "Umum", estimated_participants: 100,
   });
   const [busy, setBusy] = useState(false);
+
+  const organizer = useQuery({
+    queryKey: ["organizer", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("organizers").select("*").eq("owner_id", user.id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const regions = useQuery({
     queryKey: ["regions"],
@@ -63,29 +79,64 @@ function Wizard() {
 
   const startISO = range?.from ? toISODate(range.from) : "";
   const endISO = range?.to ? toISODate(range.to) : startISO;
-  const days = startISO ? Math.round((new Date(endISO).getTime() - new Date(startISO).getTime()) / 86400000) + 1 : 0;
-  const rangeConflict = useMemo(() => {
-    if (!range?.from) return false;
-    const end = range.to ?? range.from;
-    for (let d = new Date(range.from); d <= end; d.setDate(d.getDate() + 1)) if (booked.has(toISODate(d))) return true;
-    return false;
-  }, [range, booked]);
+  const selectedDates = startISO ? inclusiveDateRange(startISO, endISO) : [];
+  const days = selectedDates.length;
+  const rangeConflict = startISO ? hasDateConflict(startISO, endISO, booked) : false;
 
-  const step1Valid = regionId && startISO && days >= 1 && days <= 7 && !rangeConflict;
+  const step1Valid = regionId && startISO && days >= 1 && days <= 7 && !rangeConflict && !avail.isFetching && !avail.isError;
   const step2Valid = details.name.trim().length >= 3 && details.venue.trim().length >= 3 && details.estimated_participants > 0;
+  const step3Valid = Boolean(documentPath || (documentFile && documentFile.size <= 10 * 1024 * 1024));
   const regionName = regions.data?.find((r) => r.id === regionId)?.name;
+  const proposal = {
+    region_id: regionId,
+    start_date: startISO,
+    end_date: endISO,
+    ...details,
+    estimated_participants: Number(details.estimated_participants),
+  };
 
   async function onSubmit() {
     setBusy(true);
     try {
-      const res = await submit({
-        data: { region_id: regionId, start_date: startISO, end_date: endISO, ...details, estimated_participants: Number(details.estimated_participants) },
-      });
+      let currentDraftId = draftId;
+      if (currentDraftId) {
+        await updateDraft({ data: { eventId: currentDraftId, proposal } });
+      } else {
+        const draft = await createDraft({ data: proposal });
+        currentDraftId = draft.id;
+        setDraftId(currentDraftId);
+      }
+
+      let currentDocumentPath = documentPath;
+      if (!currentDocumentPath && documentFile) {
+        const extension = documentFile.name.split(".").pop()?.toLowerCase() ?? "";
+        currentDocumentPath = `${currentDraftId}/${crypto.randomUUID()}.${extension}`;
+        const { error } = await supabase.storage
+          .from("organizer-documents")
+          .upload(currentDocumentPath, documentFile, { contentType: documentFile.type, upsert: false });
+        if (error) throw new Error("Gagal mengunggah dokumen pendukung.");
+        setDocumentPath(currentDocumentPath);
+      }
+
+      if (!documentRecordSaved) {
+        const { error } = await supabase.from("event_documents").insert({
+          event_id: currentDraftId,
+          document_type: "SUPPORTING_DOCUMENT",
+          storage_path: currentDocumentPath,
+        });
+        if (error) {
+          await supabase.storage.from("organizer-documents").remove([currentDocumentPath]);
+          setDocumentPath("");
+          throw new Error("Gagal menyimpan dokumen pendukung.");
+        }
+        setDocumentRecordSaved(true);
+      }
+
+      const res = await submitDraft({ data: { eventId: currentDraftId } });
       if (!res.ok) {
         toast.error(res.message);
         qc.invalidateQueries({ queryKey: ["availability"] });
-        qc.invalidateQueries({ queryKey: ["my-events"] });
-        setStep(0);
+        setStep(1);
         return;
       }
       toast.success(`Proposal ${res.event_code} diajukan. Tanggal ditahan 24 jam menunggu deposit.`);
@@ -111,10 +162,37 @@ function Wizard() {
 
       <div className="mt-6 rounded-lg border bg-card p-6">
         {step === 0 && (
+          <div className="space-y-4">
+            <h2 className="font-display text-xl font-semibold">Informasi penyelenggara</h2>
+            {organizer.isLoading ? (
+              <p className="text-sm text-muted-foreground">Memuat profil penyelenggara…</p>
+            ) : organizer.isError ? (
+              <div role="alert" className="space-y-3">
+                <p className="text-sm text-destructive">Profil gagal dimuat.</p>
+                <Button variant="outline" onClick={() => void organizer.refetch()}>Coba lagi</Button>
+              </div>
+            ) : !organizer.data ? (
+              <div className="space-y-3 text-sm">
+                <p>Lengkapi profil penyelenggara sebelum membuat proposal.</p>
+                <Button variant="outline" asChild><Link to="/portal">Buka profil</Link></Button>
+              </div>
+            ) : (
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                <Row k="Organisasi" v={organizer.data.organization_name} />
+                <Row k="Penanggung jawab" v={organizer.data.contact_person} />
+                <Row k="Telepon" v={organizer.data.contact_phone || "Belum diisi"} />
+                <Row k="Legalitas" v={organizer.data.legal_id || "Belum diisi"} />
+                <Row k="Status verifikasi" v={organizer.data.verification_status === "VERIFIED" ? "Terverifikasi" : organizer.data.verification_status === "REJECTED" ? "Ditolak" : "Menunggu"} />
+              </dl>
+            )}
+          </div>
+        )}
+
+        {step === 1 && (
           <div className="space-y-6">
             <div className="space-y-2">
               <Label>Wilayah (Kabupaten/Kota)</Label>
-              <Select value={regionId} onValueChange={(v) => { setRegionId(v); setRange(undefined); }}>
+              <Select value={regionId} disabled={regions.isLoading || regions.isError} onValueChange={(v) => { setRegionId(v); setRange(undefined); }}>
                 <SelectTrigger><SelectValue placeholder="Pilih wilayah" /></SelectTrigger>
                 <SelectContent>
                   {regions.data?.map((r) => (
@@ -122,6 +200,8 @@ function Wizard() {
                   ))}
                 </SelectContent>
               </Select>
+              {regions.isLoading && <p className="text-sm text-muted-foreground">Memuat daftar wilayah…</p>}
+              {regions.isError && <p role="alert" className="text-sm text-destructive">Daftar wilayah gagal dimuat. Muat ulang halaman untuk mencoba kembali.</p>}
             </div>
             {regionId && (
               <div>
@@ -142,6 +222,7 @@ function Wizard() {
                     <p className="flex items-center gap-2"><span className="booked-swatch inline-block h-3 w-3 rounded-sm" /> Sudah dipesan</p>
                     <p className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-sm bg-primary" /> Pilihan Anda</p>
                     {avail.isFetching && <p className="text-muted-foreground">Memeriksa ketersediaan…</p>}
+                    {avail.isError && <p className="text-destructive">Ketersediaan gagal dimuat. Coba pilih wilayah kembali.</p>}
                     {startISO && (
                       <p className="pt-2 font-medium">{fmtDate(startISO)}{endISO !== startISO && ` – ${fmtDate(endISO)}`} ({days} hari)</p>
                     )}
@@ -154,7 +235,7 @@ function Wizard() {
           </div>
         )}
 
-        {step === 1 && (
+        {step === 2 && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2"><Label htmlFor="n">Nama event</Label><Input id="n" maxLength={150} value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} /></div>
             <div className="space-y-2 sm:col-span-2"><Label htmlFor="v">Venue / lapangan</Label><Input id="v" maxLength={200} value={details.venue} onChange={(e) => setDetails({ ...details, venue: e.target.value })} /></div>
@@ -177,7 +258,26 @@ function Wizard() {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="supporting-document">Dokumen pendukung</Label>
+              <Input
+                id="supporting-document"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                disabled={Boolean(documentPath)}
+                onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="text-sm text-muted-foreground">Unggah proposal atau dokumen pendukung dalam format PDF, JPG, atau PNG. Maksimal 10 MB.</p>
+            </div>
+            {documentFile && <p className="text-sm">{documentFile.name} · {(documentFile.size / 1024 / 1024).toFixed(1)} MB</p>}
+            {documentFile && documentFile.size > 10 * 1024 * 1024 && <p className="text-sm text-destructive">Ukuran dokumen melebihi 10 MB.</p>}
+            {documentPath && <p className="text-sm text-muted-foreground">Dokumen berhasil diunggah.</p>}
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="space-y-4">
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <Row k="Event" v={details.name} />
@@ -196,8 +296,8 @@ function Wizard() {
 
       <div className="mt-4 flex justify-between">
         {step === 0 ? <Button variant="ghost" asChild><Link to="/portal">Batal</Link></Button> : <Button variant="outline" onClick={() => setStep(step - 1)} disabled={busy}>Kembali</Button>}
-        {step < 2 ? (
-          <Button onClick={() => setStep(step + 1)} disabled={step === 0 ? !step1Valid : !step2Valid}>Lanjut</Button>
+        {step < 4 ? (
+          <Button onClick={() => setStep(step + 1)} disabled={step === 0 ? !organizer.data : step === 1 ? !step1Valid : step === 2 ? !step2Valid : !step3Valid}>Lanjut</Button>
         ) : (
           <Button onClick={onSubmit} disabled={busy}>{busy ? "Mengajukan…" : "Ajukan & kunci tanggal"}</Button>
         )}

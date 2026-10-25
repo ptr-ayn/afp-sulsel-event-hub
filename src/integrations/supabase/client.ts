@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
+import { resolveSupabaseEnvironment } from './environment';
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
@@ -10,6 +11,7 @@ function isNewSupabaseApiKey(value: string): boolean {
 // The public URL can be reachable only from the browser, so server requests go to the runtime URL of the same backend.
 function serverSupabaseUrl(publicUrl: string, supabaseKey: string): string | undefined {
   if (typeof window !== 'undefined' || typeof process === 'undefined') return undefined;
+  if (import.meta.env.MODE === 'test' || import.meta.env.MODE === 'testdev') return undefined;
   const serverUrl = process.env['SUPABASE_URL']?.replace(/\/+$/, '');
   if (!serverUrl || serverUrl === publicUrl || process.env['SUPABASE_PUBLISHABLE_KEY'] !== supabaseKey) return undefined;
   return serverUrl;
@@ -47,20 +49,13 @@ function createSupabaseFetch(supabaseUrl: string, supabaseKey: string): typeof f
 
 
 function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
-
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
-  }
+  const { url: SUPABASE_URL, publishableKey: SUPABASE_PUBLISHABLE_KEY } = resolveSupabaseEnvironment(import.meta.env.MODE, {
+    viteUrl: import.meta.env['VITE_SUPABASE_URL'],
+    vitePublishableKey: import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'],
+    testVitePublishableKey: import.meta.env['VITE_SUPABASE_TEST_PUBLISHABLE_KEY'],
+    serverUrl: process.env['SUPABASE_URL'],
+    serverPublishableKey: process.env['SUPABASE_PUBLISHABLE_KEY'],
+  });
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {

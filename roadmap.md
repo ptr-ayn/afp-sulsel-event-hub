@@ -16,7 +16,14 @@ Backend: user's own Supabase project (ref cwmznvhtrulmnwyvykbn). Deposit Rp500.0
 - [ ] Organizer profile/organization verification flow
 - [ ] Event proposal wizard (region selector, date range, venue, docs upload)
 - [ ] Availability check server function + calendar UI
-- [ ] DB function: atomic date-claim transaction (`claim_event_dates`), submit flow, temporary-hold expiry job
+- [ ] Verify the existing `submit_proposal` atomic temporary-hold claim, add database acceptance tests, and configure trusted temporary-hold expiry
+
+### Event Date Lock Lifecycle (Current Repository Behavior)
+- `TEMPORARY_HOLD` is created by `submit_proposal` for 24 hours while the event is `PENDING_PAYMENT`. It is a temporary hold, not a paid reservation.
+- `release_expired_holds()` deletes expired `TEMPORARY_HOLD` rows and cancels matching `PENDING_PAYMENT` events. It does not release `PAYMENT_VERIFIED` or `APPROVED` lock types.
+- Expiry cleanup is invoked from proposal submission; no scheduled expiry job is defined in the checked-in migrations.
+- `PAYMENT_VERIFIED` and `APPROVED` exist in the lock enum, but this repository has no verified-payment claim transition yet. A definitive reservation must be claimed atomically only after deposit verification.
+- `RELEASED` is not a lock enum value. Current release is deletion; expired-hold cleanup records event status history but does not retain a date-lock release record. No rejection RPC currently releases locks while preserving payment and audit history.
 
 ## Phase 3 — Deposit payments
 - [ ] Payment provider adapter (Midtrans + Xendit, sandbox first; live payments need explicit approval)

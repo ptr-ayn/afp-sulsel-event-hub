@@ -1,3 +1,8 @@
+# Local environment configuration
+.env*
+!.env.example
+!.env.test.example
+
 # Logs
 logs
 *.log

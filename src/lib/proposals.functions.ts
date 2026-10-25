@@ -29,7 +29,7 @@ function friendly(msg: string) {
   return key ? ERRORS[key] : "Gagal mengajukan proposal. Coba lagi.";
 }
 
-export const submitProposal = createServerFn({ method: "POST" })
+export const createProposalDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ProposalSchema.parse(input))
   .handler(async ({ data, context }) => {
@@ -43,13 +43,41 @@ export const submitProposal = createServerFn({ method: "POST" })
 
     const { data: draft, error: insErr } = await supabase
       .from("events")
-      .insert({ ...data, organizer_id: org.id, status: "DRAFT" })
+      .insert({ ...data, organizer_id: org.id })
       .select("id")
       .single();
     if (insErr || !draft) throw new Error("Gagal menyimpan draf proposal.");
 
-    const { data: ev, error } = await supabase.rpc("submit_proposal", { _event_id: draft.id });
-    if (error) return { ok: false as const, draftId: draft.id, message: friendly(error.message) };
+    return { id: draft.id };
+  });
+
+export const updateProposalDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const value = input as { eventId?: unknown; proposal?: unknown };
+    return {
+      eventId: z.string().uuid().parse(value.eventId),
+      proposal: ProposalSchema.parse(value.proposal),
+    };
+  })
+  .handler(async ({ data, context }) => {
+    const { data: draft, error } = await context.supabase
+      .from("events")
+      .update(data.proposal)
+      .eq("id", data.eventId)
+      .eq("status", "DRAFT")
+      .select("id")
+      .maybeSingle();
+    if (error || !draft) throw new Error("Draf proposal tidak dapat diperbarui.");
+    return { ok: true as const };
+  });
+
+export const submitProposalDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ({ eventId: z.string().uuid().parse((input as { eventId?: unknown }).eventId) }))
+  .handler(async ({ data, context }) => {
+    const { data: ev, error } = await context.supabase.rpc("submit_proposal", { _event_id: data.eventId });
+    if (error) return { ok: false as const, message: friendly(error.message) };
     const e = ev as unknown as { id: string; event_code: string };
     return { ok: true as const, id: e.id, event_code: e.event_code };
   });
