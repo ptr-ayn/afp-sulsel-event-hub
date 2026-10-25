@@ -21,3 +21,5 @@
 - App-internal server logic uses `createServerFn` / server routes under `src/routes/api`; no new Supabase Edge Functions.
 - Deposit amount is Rp500.000 per proposal, stored as integer IDR; the server validates amounts, never the browser.
 - Public Supabase URL + publishable key live in `src/integrations/supabase/public-config.ts` as a fallback, because `.env` is gitignored and git-based builds otherwise have no VITE_SUPABASE_* values. Secret keys never go there.
+- Payment adapters and callback authentication live in server-only modules; authenticated TanStack functions authorize ordinary actions, while authenticated callbacks query provider status before service-only settlement RPCs, so redirects never verify deposits.
+- Payment owner/finance security-definer implementations live in non-exposed app_private with public security-invoker wrappers; transaction-only internal settlement has no API-role execution grant, preventing bypass of payment verification.

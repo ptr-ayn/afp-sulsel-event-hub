@@ -15,6 +15,7 @@ import { createProposalDraft, submitProposalDraft, updateProposalDraft } from "@
 import { DEPOSIT_IDR, fmtDate, hasDateConflict, inclusiveDateRange, makassarToday, rupiah, toISODate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/portal/proposals/new")({
+  head: () => ({ meta: [{ title: "Ajukan Proposal — AFP Sulsel" }, { name: "description", content: "Ajukan event futsal dengan pilihan wilayah, tanggal, dan dokumen pendukung." }, { property: "og:title", content: "Ajukan Proposal — AFP Sulsel" }, { property: "og:description", content: "Pengajuan proposal event futsal AFP Sulsel." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Wizard,
 });
 
@@ -141,7 +142,7 @@ function Wizard() {
       }
       toast.success(`Proposal ${res.event_code} diajukan. Tanggal ditahan 24 jam menunggu deposit.`);
       qc.invalidateQueries({ queryKey: ["my-events"] });
-      navigate({ to: "/portal" });
+      navigate({ to: "/portal/payments/$eventId", params: { eventId: res.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal mengajukan proposal.");
     } finally {

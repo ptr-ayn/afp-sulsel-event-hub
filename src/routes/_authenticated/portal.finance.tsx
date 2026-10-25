@@ -1,0 +1,34 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { Check, X, FileText, Save } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { getFinancePage, reviewTransfer, saveDepositBank } from "@/lib/payments.functions";
+import { rupiah } from "@/lib/format";
+const financeOptions = queryOptions({ queryKey: ["finance-payments"], queryFn: () => getFinancePage() });
+export const Route = createFileRoute("/_authenticated/portal/finance")({
+  head: () => ({ meta: [{ title: "Verifikasi Deposit — AFP Sulsel" }, { name: "description", content: "Verifikasi transfer deposit dan pemantauan rekonsiliasi AFP Sulsel." }, { property: "og:title", content: "Verifikasi Deposit — AFP Sulsel" }, { property: "og:description", content: "Pengelolaan transfer deposit oleh finance dan super admin." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(financeOptions), component: FinancePage,
+});
+function FinancePage() {
+  const query = useSuspenseQuery(financeOptions); const { payments, refunds, superAdmin, bank } = query.data;
+  const review = useServerFn(reviewTransfer); const save = useServerFn(saveDepositBank);
+  const [selected, setSelected] = useState<{ id: string; approve: boolean } | null>(null); const [reason, setReason] = useState(""); const [busy, setBusy] = useState(false);
+  async function confirm() { if (!selected) return; setBusy(true); try { await review({ data: { paymentId: selected.id, approve: selected.approve, reason } }); await query.refetch(); toast.success("Hasil verifikasi tersimpan."); setSelected(null); setReason(""); } catch (e) { toast.error(e instanceof Error ? e.message : "Verifikasi gagal."); } finally { setBusy(false); } }
+  async function proof(path: string) { const result = await supabase.storage.from("payment-proofs").createSignedUrl(path, 60); if (result.error || !result.data) { toast.error("Bukti tidak dapat dibuka."); return; } window.open(result.data.signedUrl, "_blank", "noopener,noreferrer"); }
+  async function saveBank(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); const f = new FormData(e.currentTarget); setBusy(true); try { await save({ data: { bank: String(f.get("bank")), account: String(f.get("account")), beneficiary: String(f.get("beneficiary")) } }); await query.refetch(); toast.success("Rekening deposit tersimpan."); } catch (e) { toast.error(e instanceof Error ? e.message : "Rekening gagal disimpan."); } finally { setBusy(false); } }
+  return <div className="space-y-8"><div><p className="text-sm text-muted-foreground">Finance</p><h1 className="font-display text-3xl font-bold">Verifikasi deposit</h1></div>
+    <section><h2 className="mb-3 text-lg font-semibold">Transfer menunggu verifikasi <Badge variant="secondary">{payments.length}</Badge></h2>{!payments.length ? <p className="border-y py-6 text-sm text-muted-foreground">Tidak ada transfer menunggu verifikasi.</p> : <ul className="divide-y border-y">{payments.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-4 py-4"><div><p className="font-semibold">{p.events?.name}</p><p className="text-sm text-muted-foreground">{p.events?.event_code} · {rupiah(p.amount_idr)}</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={!p.proof_path} onClick={() => p.proof_path && proof(p.proof_path)}><FileText />Bukti transfer</Button><Button disabled={busy} onClick={() => { setReason(""); setSelected({ id: p.id, approve: true }); }}><Check />Verifikasi</Button><Button variant="destructive" disabled={busy} onClick={() => { setReason(""); setSelected({ id: p.id, approve: false }); }}><X />Tolak</Button></div></li>)}</ul>}</section>
+    <section><h2 className="mb-3 text-lg font-semibold">Rekonsiliasi & pengembalian dana</h2>{!refunds.length ? <p className="border-y py-6 text-sm text-muted-foreground">Tidak ada tugas pengembalian dana.</p> : <ul className="divide-y border-y">{refunds.map((r) => <li key={r.id} className="py-4"><div className="flex flex-wrap justify-between gap-2"><p className="font-semibold">{r.payments?.events?.event_code} · {rupiah(r.amount_idr)}</p><Badge variant={r.status === "FAILED" ? "destructive" : "secondary"}>{r.status}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{r.reason}</p></li>)}</ul>}</section>
+    {superAdmin && <section><h2 className="mb-4 text-lg font-semibold">Rekening deposit</h2><form onSubmit={saveBank} className="grid max-w-xl gap-4"><div className="space-y-2"><Label htmlFor="bank">Nama bank</Label><Input id="bank" name="bank" required maxLength={100} defaultValue={bank?.bank ?? ""} /></div><div className="space-y-2"><Label htmlFor="account">Nomor rekening</Label><Input id="account" name="account" required pattern="[0-9]{5,40}" inputMode="numeric" defaultValue={bank?.account ?? ""} /></div><div className="space-y-2"><Label htmlFor="beneficiary">Atas nama</Label><Input id="beneficiary" name="beneficiary" required maxLength={150} defaultValue={bank?.beneficiary ?? ""} /></div><Button type="submit" disabled={busy}><Save />Simpan rekening</Button></form></section>}
+    <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open && !busy) setSelected(null); }}><DialogContent><DialogHeader><DialogTitle>{selected?.approve ? "Verifikasi deposit Rp500.000?" : "Tolak bukti transfer?"}</DialogTitle><DialogDescription>{selected?.approve ? "Pastikan dana telah diterima di rekening resmi. Seluruh tanggal diklaim bersamaan; konflik masuk rekonsiliasi." : "Alasan penolakan wajib diisi."}</DialogDescription></DialogHeader>{!selected?.approve && <><Label htmlFor="rejection">Alasan penolakan</Label><Textarea id="rejection" maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} /></>}<div className="flex justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => setSelected(null)}>Batal</Button><Button disabled={busy || (!selected?.approve && reason.trim().length < 3)} onClick={confirm}>{busy ? "Menyimpan…" : "Konfirmasi"}</Button></div></DialogContent></Dialog>
+  </div>;
+}

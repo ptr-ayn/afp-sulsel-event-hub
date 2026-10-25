@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { STATUS_LABEL, fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/portal/")({
+  head: () => ({ meta: [{ title: "Proposal Saya — AFP Sulsel" }, { name: "description", content: "Kelola profil penyelenggara, proposal, dan deposit AFP Sulsel." }, { property: "og:title", content: "Proposal Saya — AFP Sulsel" }, { property: "og:description", content: "Daftar proposal dan status event penyelenggara AFP Sulsel." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Dashboard,
 });
 
@@ -31,10 +32,11 @@ function Dashboard() {
     queryKey: ["my-events", org.data?.id],
     enabled: !!org.data,
     queryFn: async () => {
+      if (!org.data) return [];
       const { data, error } = await supabase
         .from("events")
         .select("id, event_code, name, start_date, end_date, status, venue, regions(name)")
-        .eq("organizer_id", org.data!.id)
+        .eq("organizer_id", org.data.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -81,7 +83,7 @@ function Dashboard() {
                   <p className="font-medium">{e.name} <span className="font-mono text-xs text-muted-foreground">{e.event_code}</span></p>
                   <p className="text-sm text-muted-foreground">{(e.regions as { name: string } | null)?.name} · {e.venue} · {fmtDate(e.start_date)}{e.end_date !== e.start_date && ` – ${fmtDate(e.end_date)}`}</p>
                 </div>
-                <Badge variant={e.status === "APPROVED" ? "default" : e.status === "REJECTED" || e.status === "CANCELLED" ? "destructive" : "secondary"}>{STATUS_LABEL[e.status]}</Badge>
+                <div className="flex flex-wrap items-center gap-3"><Badge variant={e.status === "APPROVED" ? "default" : e.status === "REJECTED" || e.status === "CANCELLED" ? "destructive" : "secondary"}>{STATUS_LABEL[e.status]}</Badge>{e.status !== "DRAFT" && <Button asChild size="sm" variant="outline"><Link to="/portal/payments/$eventId" params={{ eventId: e.id }}>{e.status === "PENDING_PAYMENT" ? "Bayar deposit" : "Rincian deposit"}</Link></Button>}</div>
               </li>
             ))}
           </ul>

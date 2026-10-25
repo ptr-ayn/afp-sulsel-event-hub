@@ -14,7 +14,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedPortalRouteImport } from './routes/_authenticated/portal'
 import { Route as AuthenticatedPortalIndexRouteImport } from './routes/_authenticated/portal.index'
+import { Route as AuthenticatedPortalPaymentsEventIdRouteImport } from './routes/_authenticated/portal.payments.$eventId'
 import { Route as AuthenticatedPortalProposalsNewRouteImport } from './routes/_authenticated/portal.proposals.new'
+import { Route as ApiPublicPaymentsExpireHoldsRouteImport } from './routes/api/public/payments/expire-holds'
+import { Route as ApiPublicPaymentsMidtransRouteImport } from './routes/api/public/payments/midtrans'
+import { Route as ApiPublicPaymentsXenditRouteImport } from './routes/api/public/payments/xendit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,25 +45,56 @@ const AuthenticatedPortalIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedPortalRoute,
   } as any)
+const AuthenticatedPortalPaymentsEventIdRoute =
+  AuthenticatedPortalPaymentsEventIdRouteImport.update({
+    id: '/payments/$eventId',
+    path: '/payments/$eventId',
+    getParentRoute: () => AuthenticatedPortalRoute,
+  } as any)
 const AuthenticatedPortalProposalsNewRoute =
   AuthenticatedPortalProposalsNewRouteImport.update({
     id: '/proposals/new',
     path: '/proposals/new',
     getParentRoute: () => AuthenticatedPortalRoute,
   } as any)
+const ApiPublicPaymentsExpireHoldsRoute =
+  ApiPublicPaymentsExpireHoldsRouteImport.update({
+    id: '/api/public/payments/expire-holds',
+    path: '/api/public/payments/expire-holds',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPaymentsMidtransRoute =
+  ApiPublicPaymentsMidtransRouteImport.update({
+    id: '/api/public/payments/midtrans',
+    path: '/api/public/payments/midtrans',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPaymentsXenditRoute = ApiPublicPaymentsXenditRouteImport.update({
+  id: '/api/public/payments/xendit',
+  path: '/api/public/payments/xendit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/portal': typeof AuthenticatedPortalRouteWithChildren
   '/portal/': typeof AuthenticatedPortalIndexRoute
+  '/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
+  '/api/public/payments/expire-holds': typeof ApiPublicPaymentsExpireHoldsRoute
+  '/api/public/payments/midtrans': typeof ApiPublicPaymentsMidtransRoute
+  '/api/public/payments/xendit': typeof ApiPublicPaymentsXenditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/portal': typeof AuthenticatedPortalIndexRoute
+  '/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
+  '/api/public/payments/expire-holds': typeof ApiPublicPaymentsExpireHoldsRoute
+  '/api/public/payments/midtrans': typeof ApiPublicPaymentsMidtransRoute
+  '/api/public/payments/xendit': typeof ApiPublicPaymentsXenditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,13 +103,34 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/portal': typeof AuthenticatedPortalRouteWithChildren
   '/_authenticated/portal/': typeof AuthenticatedPortalIndexRoute
+  '/_authenticated/portal/payments/$eventId': typeof AuthenticatedPortalPaymentsEventIdRoute
   '/_authenticated/portal/proposals/new': typeof AuthenticatedPortalProposalsNewRoute
+  '/api/public/payments/expire-holds': typeof ApiPublicPaymentsExpireHoldsRoute
+  '/api/public/payments/midtrans': typeof ApiPublicPaymentsMidtransRoute
+  '/api/public/payments/xendit': typeof ApiPublicPaymentsXenditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/portal' | '/portal/' | '/portal/proposals/new'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/portal'
+    | '/portal/'
+    | '/portal/payments/$eventId'
+    | '/portal/proposals/new'
+    | '/api/public/payments/expire-holds'
+    | '/api/public/payments/midtrans'
+    | '/api/public/payments/xendit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/portal' | '/portal/proposals/new'
+  to:
+    | '/'
+    | '/auth'
+    | '/portal'
+    | '/portal/payments/$eventId'
+    | '/portal/proposals/new'
+    | '/api/public/payments/expire-holds'
+    | '/api/public/payments/midtrans'
+    | '/api/public/payments/xendit'
   id:
     | '__root__'
     | '/'
@@ -82,13 +138,20 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/portal'
     | '/_authenticated/portal/'
+    | '/_authenticated/portal/payments/$eventId'
     | '/_authenticated/portal/proposals/new'
+    | '/api/public/payments/expire-holds'
+    | '/api/public/payments/midtrans'
+    | '/api/public/payments/xendit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicPaymentsExpireHoldsRoute: typeof ApiPublicPaymentsExpireHoldsRoute
+  ApiPublicPaymentsMidtransRoute: typeof ApiPublicPaymentsMidtransRoute
+  ApiPublicPaymentsXenditRoute: typeof ApiPublicPaymentsXenditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -128,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalIndexRouteImport
       parentRoute: typeof AuthenticatedPortalRoute
     }
+    '/_authenticated/portal/payments/$eventId': {
+      id: '/_authenticated/portal/payments/$eventId'
+      path: '/payments/$eventId'
+      fullPath: '/portal/payments/$eventId'
+      preLoaderRoute: typeof AuthenticatedPortalPaymentsEventIdRouteImport
+      parentRoute: typeof AuthenticatedPortalRoute
+    }
     '/_authenticated/portal/proposals/new': {
       id: '/_authenticated/portal/proposals/new'
       path: '/proposals/new'
@@ -135,16 +205,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortalProposalsNewRouteImport
       parentRoute: typeof AuthenticatedPortalRoute
     }
+    '/api/public/payments/expire-holds': {
+      id: '/api/public/payments/expire-holds'
+      path: '/api/public/payments/expire-holds'
+      fullPath: '/api/public/payments/expire-holds'
+      preLoaderRoute: typeof ApiPublicPaymentsExpireHoldsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/midtrans': {
+      id: '/api/public/payments/midtrans'
+      path: '/api/public/payments/midtrans'
+      fullPath: '/api/public/payments/midtrans'
+      preLoaderRoute: typeof ApiPublicPaymentsMidtransRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/xendit': {
+      id: '/api/public/payments/xendit'
+      path: '/api/public/payments/xendit'
+      fullPath: '/api/public/payments/xendit'
+      preLoaderRoute: typeof ApiPublicPaymentsXenditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedPortalRouteChildren {
   AuthenticatedPortalIndexRoute: typeof AuthenticatedPortalIndexRoute
+  AuthenticatedPortalPaymentsEventIdRoute: typeof AuthenticatedPortalPaymentsEventIdRoute
   AuthenticatedPortalProposalsNewRoute: typeof AuthenticatedPortalProposalsNewRoute
 }
 
 const AuthenticatedPortalRouteChildren: AuthenticatedPortalRouteChildren = {
   AuthenticatedPortalIndexRoute: AuthenticatedPortalIndexRoute,
+  AuthenticatedPortalPaymentsEventIdRoute:
+    AuthenticatedPortalPaymentsEventIdRoute,
   AuthenticatedPortalProposalsNewRoute: AuthenticatedPortalProposalsNewRoute,
 }
 
@@ -166,6 +260,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicPaymentsExpireHoldsRoute: ApiPublicPaymentsExpireHoldsRoute,
+  ApiPublicPaymentsMidtransRoute: ApiPublicPaymentsMidtransRoute,
+  ApiPublicPaymentsXenditRoute: ApiPublicPaymentsXenditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
