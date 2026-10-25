@@ -30,6 +30,8 @@ export const startDeposit = createServerFn({ method: "POST" }).middleware([requi
   if (payment.checkout_url) return { id: payment.id, url: gateway.safeCheckoutUrl(data.provider, payment.checkout_url) };
   // begin_deposit verified ownership and state before privileged attachment.
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const claim = await supabaseAdmin.rpc("claim_deposit_checkout", { _payment_id: payment.id });
+  if (claim.error || !claim.data) throw new Error("Checkout sedang diproses atau perlu pemeriksaan pengelola. Jangan melakukan pembayaran ganda.");
   const checkout = await gateway.createCheckout(data.provider, payment);
   const attached = await supabaseAdmin.rpc("attach_deposit_checkout", { _payment_id: payment.id, _reference: checkout.reference, _url: checkout.url });
   if (attached.error) throw new Error("Checkout belum dapat disimpan. Hubungi pengelola sebelum mencoba pembayaran ulang.");

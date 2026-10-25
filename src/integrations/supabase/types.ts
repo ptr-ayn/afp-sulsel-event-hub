@@ -393,6 +393,7 @@ export type Database = {
       payments: {
         Row: {
           amount_idr: number
+          checkout_claimed_at: string | null
           checkout_url: string | null
           created_at: string
           currency: string
@@ -412,6 +413,7 @@ export type Database = {
         }
         Insert: {
           amount_idr: number
+          checkout_claimed_at?: string | null
           checkout_url?: string | null
           created_at?: string
           currency?: string
@@ -431,6 +433,7 @@ export type Database = {
         }
         Update: {
           amount_idr?: number
+          checkout_claimed_at?: string | null
           checkout_url?: string | null
           created_at?: string
           currency?: string
@@ -636,6 +639,7 @@ export type Database = {
         Args: { _event_id: string; _provider: string }
         Returns: {
           amount_idr: number
+          checkout_claimed_at: string | null
           checkout_url: string | null
           created_at: string
           currency: string
@@ -659,6 +663,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      claim_deposit_checkout: {
+        Args: { _payment_id: string }
+        Returns: boolean
       }
       get_deposit_bank: { Args: never; Returns: Json }
       get_region_availability: {
